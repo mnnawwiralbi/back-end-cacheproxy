@@ -1,15 +1,19 @@
+# Note : cara pemrograman yang baik adala dengan menggunakan algoritmik validasi dan implementasi
 
 import json
 import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 from rest_framework.response import Response
+from RestfulApi.api.AccesLog import UpdateAutoAccesLog
+from RestfulApi.api.StoreLog import UpdateAutoStoreLog
+from RestfulApi.models import AccessLog, ProxyServerInfo, UserAgentLog, StoreLog
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework import status
 import paramiko
-from RestfulApi.api.updatecache import itemparse, cachedatabase
-from RestfulApi.models import AccessLog
 
+# membuat example web socket 
 class ChatConsumer(AsyncWebsocketConsumer):
-    
     async def connect(self):
         await self.accept()
     
@@ -23,8 +27,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'message': message
         }))
-        
-class UpdateDataChace(AsyncWebsocketConsumer):
+
+# membuat update data access log        
+class UpdateDataAccesLog(AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
         self.periodical = asyncio.create_task(self.send_periodic_updates())
@@ -32,39 +37,23 @@ class UpdateDataChace(AsyncWebsocketConsumer):
     async def disconnect(self, code):
         self.periodical.cancel()
 
-    async def receive(self, text_data):
-        data = json.loads(text_data)
-        # Lakukan operasi pada database menggunakan data yang diterima
-        # Misalnya:
-        await sync_to_async(self.update_database)(data)
-
-        # Kirim pesan balik ke WebSocket
-        await self.send(text_data=json.dumps({
-            'message': 'Data updated successfully'
-        }))
-
-    def update_database(self, data):
-        # Operasi sinkron untuk memperbarui database
-        # Misalnya:
-        # my_model_instance = MyModel.objects.get(id=data['id'])
-        # my_model_instance.field = data['new_value']
-        # my_model_instance.save()
-        pass
-
     async def send_periodic_updates(self):
         try:
             while True:
+                
                 # Lakukan operasi yang diperlukan untuk memperbarui database atau aktivitas lainnya
                 # Misalnya:
+                
                 await sync_to_async(self.update_periodic_data)()
 
                 # Kirim pesan ke WebSocket (opsional)
                 await self.send(text_data=json.dumps({
-                    'message': 'Periodic update completed'
+                    'message': 'Periodic update acces completed'
                 }))
 
                 # Tunggu selama 10 menit sebelum mengulang
                 await asyncio.sleep(3)
+                
         except asyncio.CancelledError:
             # Handle cancellation separately if needed
             pass
@@ -74,48 +63,164 @@ class UpdateDataChace(AsyncWebsocketConsumer):
             }))
 
     def update_periodic_data(self):
-        # deklarasi konfigurasi akun server
-        hostname = '192.168.120.41'
-        username = 'root'
-        password = '1234'
-        port = 22
+            server =  ProxyServerInfo.objects.get(id=2)
+            
+            hostname = server.ip_address
+            username = 'root'
+            password = '1234'
+            port = 22
 
-        # lokasi squid
-        squid_log_path = '/var/log/squid/access.log'
+            # lokasi squid
+            squid_log_path = '/var/log/squid/access.log'
+            # menggunakan paramiko
+            parami = paramiko.SSHClient()
+            parami.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        # menggunakan paramiko
-        parami = paramiko.SSHClient()
-        parami.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            # koneksi ssh
+            # Menghubungkan ke server
+            parami.connect(hostname, port, username, password)
 
-        # koneksi ssh
-        # Menghubungkan ke server
-        parami.connect(hostname, port, username, password)
+            # melakukan perintah ssl
+            stdin, stdata, stderror = parami.exec_command(f"cat {squid_log_path}")
+            data = stdata.read().decode()
+            error = stderror.read().decode()
 
-        # melakukan perintah ssl
-        stdin, stdout, stderr = parami.exec_command(f"cat {squid_log_path}")
+            if error:
+                return Response({"status": "error", "message": error})
 
-        data = stdout.read().decode()
-        error = stderr.read().decode()
+            # parse datacase
+            datacache = data.split('\n')
 
-        parami.close()
+            # mengambil idcache
+            jumlahbase = UpdateAutoAccesLog.cachedatabase()
 
-        if error:
-            raise Exception(f"Error reading squid log: {error}")
+            acceslog, jumlahcase = UpdateAutoAccesLog.itemparse(datacache)
+        
 
-        # parse datacache
-        datacache = data.split('\n')
+            # membuat memory sementara database
 
-        # mengambil idcache
-        idlog, jumlahbase = cachedatabase()
+            database = [0] * jumlahcase
 
-        acceslog, jumlahcase = itemparse(datacache)
+            # memasukan kedalam database
 
-        # membuat memory sementara database
-        database = [0] * jumlahcase
+            if (jumlahbase != jumlahcase):
+                for i in range(jumlahbase, jumlahcase):
+                    database[i] = AccessLog(
+                        timestamp = acceslog[i]['timestamp'],
+                        elapsed_time = acceslog[i]['timetaken'],
+                        client_address = acceslog[i]['ip_address'],
+                        http_status = acceslog[i]['http_status'],
+                        bytes = acceslog[i]['bytes'],
+                        request_method = acceslog[i]['methode'],
+                        request_url = acceslog[i]['url'],
+                        host = acceslog[i]['host'],
+                        server = server,        
+                    )
+                    database[i].save()
 
-        # memasukan kedalam database
-        if jumlahbase != jumlahcase:
-            for i in range(jumlahbase, jumlahcase):
-                database[i] = AccessLog(idlog=i, timestamp=acceslog[i]['timestamp'],
-                                    ip=acceslog[i]['ip_address'], url=acceslog[i]['url'])
-                database[i].save()
+            return Response({
+                                'message': 'Data valid',
+                                'data' : acceslog[jumlahcase-1]
+                            }, status=status.HTTP_200_OK)
+            
+# membuat update data store log        
+class UpdateDataStoreLog(AsyncWebsocketConsumer):
+    async def connect(self):
+        await self.accept()
+        self.periodical = asyncio.create_task(self.send_periodic_updates())
+
+    async def disconnect(self, code):
+        self.periodical.cancel()
+
+    async def send_periodic_updates(self):
+        try:
+            while True:
+                
+                # Lakukan operasi yang diperlukan untuk memperbarui database atau aktivitas lainnya
+                # Misalnya:
+                
+                await sync_to_async(self.update_periodic_data)()
+
+                # Kirim pesan ke WebSocket (opsional)
+                await self.send(text_data=json.dumps({
+                    'message': 'Periodic update store completed'
+                }))
+
+                # Tunggu selama 10 menit sebelum mengulang
+                await asyncio.sleep(3)
+                
+        except asyncio.CancelledError:
+            # Handle cancellation separately if needed
+            pass
+        except Exception as e:
+            await self.send(text_data=json.dumps({
+                'message': f'Periodic update failed: {str(e)}'
+            }))
+
+    def update_periodic_data(self):
+            # deklarasi configurasi akun server
+            
+            # mendapatkan ip server
+            server =  ProxyServerInfo.objects.get(id=2)
+            
+            hostname = server.ip_address
+            username = 'root'
+            password = '1234'
+            port = 22
+
+            # lokasi squid
+            squid_log_path = '/var/log/squid/store.log'
+            # menggunakan paramiko
+            parami = paramiko.SSHClient()
+            parami.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+            # koneksi ssh
+            # Menghubungkan ke server
+            parami.connect(hostname, port, username, password)
+
+            # melakukan perintah ssl
+            stdin, stdata, stderror = parami.exec_command(f"cat {squid_log_path}")
+            data = stdata.read().decode()
+            error = stderror.read().decode()
+
+            if error:
+                return Response({"status": "error", "message": error})
+
+            # parse datacase
+            datacache = data.split('\n')
+
+            # mengambil idcache
+            jumlahbase = UpdateAutoStoreLog.cachedatabase()
+
+            acceslog, jumlahcase = UpdateAutoStoreLog.itemparse(datacache)
+        
+
+            # membuat memory sementara database
+
+            database = [0] * jumlahcase
+
+            # memasukan kedalam database
+
+            if (jumlahbase != jumlahcase):
+                for i in range(jumlahbase, jumlahcase):
+                    database[i] = StoreLog(
+                        timestamp = acceslog[i]['timestamp'],
+                        realese = acceslog[i]['realese'],
+                        flag = acceslog[i]['flag'],
+                        object_number = acceslog[i]['object_number'], 
+                        hash = acceslog[i]['hash'],
+                        size = acceslog[i]['size'],
+                        timestamp_expire = acceslog[i]['timestamp_expire'],
+                        url = acceslog[i]['url'],
+                        last_modified = acceslog[i]['last_modified'],
+                        http = acceslog[i]['http'],
+                        mime_type = acceslog[i]['mime_type'],
+                        methode = acceslog[i]['methode'],
+                        server = acceslog[i]['server']        
+                    )
+                    database[i].save()
+
+            return Response({
+                                'message': 'Data valid',
+                                'data' : acceslog[jumlahcase-1]
+                            }, status=status.HTTP_200_OK)

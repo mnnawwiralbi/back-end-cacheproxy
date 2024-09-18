@@ -9,6 +9,7 @@ from RestfulApi.models import AccessLog
 from RestfulApi.serializer.AccesSerializer import AccesLogSerializer
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.filters import SearchFilter, OrderingFilter
+from RestfulApi.models import ProxyServerInfo
 import paramiko
 
 
@@ -126,8 +127,12 @@ class UpdateAutoAccesLog (APIView) :
 
     def get(self, request):
         try:
-            # deklarasi configurasi akun server
-            hostname = '192.168.120.41'
+            #     deklarasi configurasi akun server
+                
+            #     mendapatkan ip server
+            server =  ProxyServerInfo.objects.get(id=2)
+            
+            hostname = server.ip_address
             username = 'root'
             password = '1234'
             port = 22
@@ -154,9 +159,10 @@ class UpdateAutoAccesLog (APIView) :
             datacache = data.split('\n')
 
             # mengambil idcache
-            jumlahbase = self.cachedatabase
+            jumlahbase = self.cachedatabase()
 
             acceslog, jumlahcase = self.itemparse(datacache)
+        
 
             # membuat memory sementara database
 
@@ -164,11 +170,20 @@ class UpdateAutoAccesLog (APIView) :
 
             # memasukan kedalam database
 
-            # if (jumlahbase != jumlahcase):
-            #     for i in range(jumlahbase, jumlahcase):
-            #         database[i] = CacheLog(idlog=i, timestamp=acceslog[i]['timestamp'],
-            #                             ip=acceslog[i]['ip_address'], url=acceslog[i]['url'])
-            #         database[i].save()
+            if (jumlahbase != jumlahcase):
+                for i in range(jumlahbase, jumlahcase):
+                    database[i] = AccessLog(
+                        timestamp = acceslog[i]['timestamp'],
+                        elapsed_time = acceslog[i]['timetaken'],
+                        client_address = acceslog[i]['ip_address'],
+                        http_status = acceslog[i]['http_status'],
+                        bytes = acceslog[i]['bytes'],
+                        request_method = acceslog[i]['methode'],
+                        request_url = acceslog[i]['url'],
+                        host = acceslog[i]['host'],
+                        server = server,        
+                    )
+                    database[i].save()
 
             return Response({
                                 'message': 'Data valid',

@@ -5,7 +5,7 @@ from RestfulApi.api.Register import RegisterSuperUserView, RegisterView
 from RestfulApi.api.UpdateUser import UserUpdateDelete, UserUpdate, UserUpdateById, SuperUserUpdateById
 from RestfulApi.api.Server import ServerGet, UpdateDeleteServer
 from RestfulApi.api.CacheLog import getCache
-from RestfulApi.api.StoreLog import getStore
+from RestfulApi.api.StoreLog import getStore, UpdateAutoStoreLog
 from RestfulApi.api.Agent import getAgent
 from RestfulApi.api.AccesLog import getAcces, UpdateAutoAccesLog
 
@@ -24,5 +24,7 @@ urlpatterns = [
     path('storelogview/', getStore.as_view()),
     path('agentlogview/', getAgent.as_view()),
     path('acceslogview/', getAcces.as_view()),
-    path('acceslogupdate/', UpdateAutoAccesLog.as_view()), 
+    path('acceslogupdate/', UpdateAutoAccesLog.as_view()),
+    path('storelogupdate/', UpdateAutoStoreLog.as_view()),
+    path('agentlogupdate/', UpdateAutoAccesLog.as_view()), 
 ]

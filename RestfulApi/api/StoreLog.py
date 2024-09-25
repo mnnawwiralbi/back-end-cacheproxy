@@ -19,8 +19,8 @@ class getStore (generics.ListCreateAPIView):
     permission_classes = [AllowAny]
     pagination_class = LimitOffsetPagination
     filter_backends = [SearchFilter, OrderingFilter]
-    filterset_fields = ['id', 'http_status', 'request_url']
-    search_fields = ['id', 'http_status', 'request_url']
+    filterset_fields = ['id', 'methode', 'url']
+    search_fields = ['id', 'methode', 'url']
 
     def create(self, request, *args, **kwargs):
         try:
@@ -203,3 +203,44 @@ class UpdateAutoStoreLog (APIView) :
         except:
 
             return Response({'message': 'Data in valid'}, status=status.HTTP_400_BAD_REQUEST)
+        
+class getStoreApiView (APIView) : 
+    permission_classes = [ AllowAny]
+    authentication_classes = [TokenAuthentication]
+    
+    def post(self, request) :
+        
+        # mendapatkan server terkait 
+        server_id = request.data.get('server_id')
+        
+        # acceslog yang telah ter filterisasi
+        filtered_log = StoreLog.objects.filter(server=server_id)
+        
+        # membuat array log
+        filter_array = []
+        
+        for item_log in filtered_log :
+            filter_array.append(
+                {
+                    'timestamp': item_log.timestamp,
+                    'release' : item_log.realese,
+                    'flag': item_log.flag,
+                    'object_number' : item_log.object_number,
+                    'hash' : item_log.hash,
+                    'http' : item_log.http,
+                    'timestamp_expire': item_log.timestamp_expire,
+                    'last_modified' : item_log.last_modified,
+                    'mime_type' : item_log.mime_type,
+                    'size' : item_log.size,
+                    'methode' : item_log.methode,
+                    'url' : item_log.url
+                }
+            )
+        
+        #jumlah acces log 
+        count = filtered_log.count()
+        
+        return Response({
+            'count' : count,
+            'data'  : filter_array
+        })

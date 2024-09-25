@@ -181,6 +181,7 @@ class DoubleTokenAuthentication(BaseAuthentication):
         if len(auth) == 1:
             msg = _('Invalid token header. No credentials provided.')
             raise AuthenticationFailed(msg)
+        
         elif len(auth) > 3:
             msg = _('Invalid token header. Token string should not contain spaces.')
             raise AuthenticationFailed(msg)

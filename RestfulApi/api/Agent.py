@@ -75,11 +75,12 @@ class AgentUpdateDelete (generics.RetrieveUpdateDestroyAPIView):
             return Response(response)
 
 
-class UpdateAutoStoreLog (APIView) :
+class UpdateAutoAgentLog (APIView) :
     permission_classes = [AllowAny]
     authentication_classes =[TokenAuthentication]
     
     def cachedatabase(self):
+        
         # mengambil orm object cache
         cadata = UserAgentLog.objects.all()
         jumlah = cadata.count()
@@ -94,42 +95,25 @@ class UpdateAutoStoreLog (APIView) :
             # Misalnya, jika formatnya adalah "timestamp IP_ADDRESS URL"
             parts = item.split()
 
-            if len(parts) >= 7:  # Pastikan ada cukup bagian dalam baris log
-                timestamp = parts[0]
-                release = parts[1]
-                flag = parts[2]
-                object_number = parts[3]
-                hash = parts[4]
-                http = parts[5]
-                timestamp_expire = parts[7]
-                last_modified= parts[8]
-                mime_type = parts[9]
-                size = parts[10]
-                methode = parts[11]
-                url = parts[12]
-                
+            if len(parts) >= 3:  # Pastikan ada cukup bagian dalam baris log
+                ip = parts[0]
+                date = parts[1]
+                device = parts[2]
 
                 # Membuat entitas log dalam format JSON
                 log_entry = {
-                    'timestamp': timestamp,
-                    'release' : release,
-                    'flag': flag,
-                    'object_number' : object_number,
-                    'hash' : hash,
-                    'http' : http,
-                    'timestamp_expire': timestamp_expire,
-                    'last_modified' : last_modified,
-                    'mime_type' : mime_type,
-                    'size' : size,
-                    'methode' : methode,
-                    'url' : url
+                    'ip': ip,
+                    'date' : date,
+                    'device': device,
                 }
 
                 # Menambahkan entitas log ke dalam list json_logs
                 json_logs.append(log_entry)
-
+                
+                # mendapatkan jumlah dara cache
                 jumlah = len(json_logs)
-
+        
+        # mengembalikan nilai
         return json_logs, jumlah
 
 
@@ -146,7 +130,7 @@ class UpdateAutoStoreLog (APIView) :
             port = 22
 
             # lokasi squid
-            squid_log_path = '/var/log/squid/store.log'
+            squid_log_path = '/var/log/squid/useragent.log'
             # menggunakan paramiko
             parami = paramiko.SSHClient()
             parami.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -181,23 +165,46 @@ class UpdateAutoStoreLog (APIView) :
             if (jumlahbase != jumlahcase):
                 for i in range(jumlahbase, jumlahcase):
                     database[i] = UserAgentLog(
-                        timestamp = acceslog[i]['timestamp'],
-                        realese = acceslog[i]['realese'],
-                        flag = acceslog[i]['flag'],
-                        object_number = acceslog[i]['object_number'], 
-                        hash = acceslog[i]['hash'],
-                        size = acceslog[i]['size'],
-                        timestamp_expire = acceslog[i]['timestamp_expire'],
-                        url = acceslog[i]['url'],
-                        last_modified = acceslog[i]['last_modified'],
-                        http = acceslog[i]['http'],
-                        mime_type = acceslog[i]['mime_type'],
-                        methode = acceslog[i]['methode'],
-                        server = acceslog[i]['server']        
+                        ip = acceslog[i]['ip'],
+                        date = acceslog[i]['date'],
+                        device = acceslog[i]['device']        
                     )
+                    
                     database[i].save()
 
             return Response({
                                 'message': 'Data valid',
-                                'data' : acceslog[jumlahcase-1]
+                                'data' : 'data user agent log berhasil di update'
                             }, status=status.HTTP_200_OK)
+
+class getAgentApiView (APIView) : 
+    permission_classes = [ AllowAny]
+    authentication_classes = [TokenAuthentication]
+    
+    def post(self, request) :
+        
+        # mendapatkan server terkait 
+        server_id = request.data.get('server_id')
+        
+        # acceslog yang telah ter filterisasi
+        filtered_log = UserAgentLog.objects.filter(server=server_id)
+        
+        # membuat array log
+        filter_array = []
+        
+        for item_log in filtered_log :
+            filter_array.append(
+                {
+                    'ip': item_log.ip,
+                    'date' : item_log.date,
+                    'device': item_log.device,
+                }
+            )
+        
+        #jumlah acces log 
+        count = filtered_log.count()
+        
+        return Response({
+            'count' : count,
+            'data'  : filter_array
+        })

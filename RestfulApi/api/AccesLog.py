@@ -130,11 +130,11 @@ class UpdateAutoAccesLog (APIView) :
             #     deklarasi configurasi akun server
                 
             #     mendapatkan ip server
-            server =  ProxyServerInfo.objects.get(id=2)
+            server =  ProxyServerInfo.objects.get(id=1)
             
             hostname = server.ip_address
             username = 'root'
-            password = '1234'
+            password = 'aldi2102'
             port = 22
 
             # lokasi squid
@@ -193,3 +193,45 @@ class UpdateAutoAccesLog (APIView) :
         except:
 
             return Response({'message': 'Data in valid'}, status=status.HTTP_400_BAD_REQUEST)
+        
+class getAccesApiView (APIView) : 
+    permission_classes = [ AllowAny]
+    authentication_classes = [TokenAuthentication]
+    
+    def post(self, request) :
+        
+        # mendapatkan server terkait 
+        server_id = request.data.get('server_id')
+        
+        # acceslog yang telah ter filterisasi
+        filtered_log = AccessLog.objects.filter(server=server_id)
+        
+        # membuat array log
+        filter_array = []
+        
+        for item_log in filtered_log :
+            filter_array.append(
+                {
+                    'timestamp': item_log.timestamp,
+                    'timetaken' : item_log.elapsed_time,
+                    'ip_address': item_log.client_address,
+                    'http_status' : item_log.http_status,
+                    'bytes' : item_log.bytes,
+                    'methode' : item_log.request_method,
+                    'url': item_log.request_url,
+                    'host' : item_log.host,
+                }
+            )
+        
+        #jumlah acces log 
+        count = filtered_log.count()
+        
+        return Response({
+            'count' : count,
+            'data'  : filter_array
+        }) 
+            
+        
+        
+        
+        

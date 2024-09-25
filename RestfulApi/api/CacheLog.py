@@ -11,7 +11,6 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 
-
 class getCache (generics.ListCreateAPIView):
     queryset = CacheLog.objects.all()
     serializer_class = CacheGetSerializer
@@ -75,6 +74,8 @@ class CacheUpdateDelete (generics.RetrieveUpdateDestroyAPIView):
         
     def delete(self, request, *args, **kwargs):
         return super().delete(request, *args, **kwargs)
+    
+    
 
 
          

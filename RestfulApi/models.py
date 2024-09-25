@@ -17,6 +17,7 @@ class ProxyServerInfo(models.Model):
     ip_address = models.GenericIPAddressField()
     location = models.CharField(max_length=255)
     admin_contact = models.EmailField()
+    system_operation = models.CharField(max_length=255, default='FreeBsd')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -27,17 +28,13 @@ class UserAgentLog(models.Model):
     """
     Tabel ini berisi informasi log User-Agent dari permintaan HTTP.
     """
-    timestamp = models.DateTimeField()
-    user_agent = models.CharField(max_length=1024)
-    ip_address = models.GenericIPAddressField()
-    request_url = models.URLField()
-    http_method = models.CharField(max_length=10)
-    response_status = models.CharField(max_length=10)
-    response_size = models.IntegerField()
+    ip = models.CharField(max_length=255)
+    date = models.CharField(max_length=255)
+    device = models.CharField(max_length=255)
     server = models.ForeignKey(ProxyServerInfo, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.timestamp} - {self.user_agent}"
+        return f"{self.ip} - {self.device}"
 
 
 class AccessLog(models.Model):
@@ -94,7 +91,7 @@ class StoreLog(models.Model):
     server = models.ForeignKey(ProxyServerInfo, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.timestamp} - {self.action} - {self.request_url}"
+        return f"{self.timestamp} - {self.methode} - {self.http}"
 
 
 class SquidLog(models.Model):

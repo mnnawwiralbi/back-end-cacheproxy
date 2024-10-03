@@ -94,7 +94,7 @@ class UpdateAutoStoreLog (APIView) :
 
             if len(parts) >= 7:  # Pastikan ada cukup bagian dalam baris log
                 timestamp = parts[0]
-                release = parts[1]
+                realese = parts[1]
                 flag = parts[2]
                 object_number = parts[3]
                 hash = parts[4]
@@ -110,7 +110,7 @@ class UpdateAutoStoreLog (APIView) :
                 # Membuat entitas log dalam format JSON
                 log_entry = {
                     'timestamp': timestamp,
-                    'release' : release,
+                    'realese' : realese,
                     'flag': flag,
                     'object_number' : object_number,
                     'hash' : hash,
@@ -133,14 +133,14 @@ class UpdateAutoStoreLog (APIView) :
 
     def get(self, request):
         try:
-            # deklarasi configurasi akun server
+        #     # deklarasi configurasi akun server
             
             # mendapatkan ip server
-            server =  ProxyServerInfo.objects.get(id=2)
+            server =  ProxyServerInfo.objects.get(id=1)
             
             hostname = server.ip_address
             username = 'root'
-            password = '1234'
+            password = 'aldi2102'
             port = 22
 
             # lokasi squid
@@ -191,7 +191,7 @@ class UpdateAutoStoreLog (APIView) :
                         http = acceslog[i]['http'],
                         mime_type = acceslog[i]['mime_type'],
                         methode = acceslog[i]['methode'],
-                        server = acceslog[i]['server']        
+                        server = server        
                     )
                     database[i].save()
 

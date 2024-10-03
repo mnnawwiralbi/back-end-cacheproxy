@@ -2,7 +2,7 @@ from django.urls import path
 from RestfulApi.api.CacheLog import getCache
 from RestfulApi.api.Auth import AuthApi, Auth
 from RestfulApi.api.Register import RegisterSuperUserView, RegisterView
-from RestfulApi.api.UpdateUser import UserUpdateDelete, UserUpdate, UserUpdateById, SuperUserUpdateById
+from RestfulApi.api.UpdateUser import UserUpdateDelete, UserUpdate, UserUpdateById, SuperUserUpdateById, UpdateDataUserAPI
 from RestfulApi.api.Server import ServerGet, UpdateDeleteServer
 from RestfulApi.api.CacheLog import getCache
 from RestfulApi.api.StoreLog import getStore, UpdateAutoStoreLog, getStoreApiView
@@ -13,8 +13,7 @@ urlpatterns = [
     path('auth/', Auth.as_view()),
     path('register_superuser/', RegisterSuperUserView.as_view()),
     path('register_user/', RegisterView.as_view()),
-    path('update_data_user_id/<int:id>/', UserUpdateById.as_view()),
-    path('update_data_super_user_id/<int:id>/', SuperUserUpdateById.as_view()),
+    path('update_data_user_id/<int:id>/', UpdateDataUserAPI),
     path('servercreate/', ServerGet.as_view()),
     path('serverupdatedelete/<int:id>/', UpdateDeleteServer.as_view()),
     path('cachelogview/', getCache.as_view()),

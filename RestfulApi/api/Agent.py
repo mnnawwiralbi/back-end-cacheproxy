@@ -93,12 +93,12 @@ class UpdateAutoAgentLog (APIView) :
         for item in items:
             # Lakukan parsing baris log dan sesuaikan dengan format log Squid
             # Misalnya, jika formatnya adalah "timestamp IP_ADDRESS URL"
-            parts = item.split()
+            parts = item.split(' ',3)
 
             if len(parts) >= 3:  # Pastikan ada cukup bagian dalam baris log
                 ip = parts[0]
-                date = parts[1]
-                device = parts[2]
+                date = parts[1]+ parts[2]
+                device = parts[3]
 
                 # Membuat entitas log dalam format JSON
                 log_entry = {
@@ -122,11 +122,11 @@ class UpdateAutoAgentLog (APIView) :
             # deklarasi configurasi akun server
             
             # mendapatkan ip server
-            server =  ProxyServerInfo.objects.get(id=2)
+            server =  ProxyServerInfo.objects.get(id=1)
             
             hostname = server.ip_address
             username = 'root'
-            password = '1234'
+            password = 'aldi2102'
             port = 22
 
             # lokasi squid
@@ -167,13 +167,21 @@ class UpdateAutoAgentLog (APIView) :
                     database[i] = UserAgentLog(
                         ip = acceslog[i]['ip'],
                         date = acceslog[i]['date'],
-                        device = acceslog[i]['device']        
+                        device = acceslog[i]['device'],
+                        server = server        
                     )
                     
                     database[i].save()
 
             return Response({
                                 'message': 'Data valid',
+                                'meta' : 
+                                    {
+                                       'ip' : acceslog[0]['ip'],
+                                       'date' : acceslog[0]['date'],
+                                       'device' : acceslog[0]['device']
+                                    }
+                                ,
                                 'data' : 'data user agent log berhasil di update'
                             }, status=status.HTTP_200_OK)
 

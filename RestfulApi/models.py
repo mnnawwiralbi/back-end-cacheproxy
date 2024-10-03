@@ -1,5 +1,6 @@
 from typing import Any, Dict, Tuple
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
 
@@ -76,12 +77,12 @@ class StoreLog(models.Model):
     """
     Tabel ini berisi log store dari Squid Proxy yang mencatat penyimpanan dan penghapusan objek di cache.
     """
-    timestamp = models.DateTimeField()
+    timestamp = models.CharField(max_length=255)
     realese = models.CharField(max_length=255)
     flag = models.CharField(max_length=255)
     object_number = models.CharField(max_length=255) 
     hash = models.CharField(max_length=50, help_text="Tindakan seperti RELEASE, SWAPOUT, dll.")
-    size = models.IntegerField(help_text="Ukuran objek dalam byte")
+    size = models.CharField(max_length=255)
     timestamp_expire = models.CharField(max_length=255)
     url = models.URLField()
     last_modified = models.CharField(max_length=255)
@@ -107,6 +108,25 @@ class SquidLog(models.Model):
 
     def __str__(self):
         return f"{self.timestamp} - {self.server.server_name}"
+    
+class UserData (models.Model) :
+    
+    kelamin = (
+        ('Laki-Laki', 'Laki-Laki'),
+        ('Perempuan', 'Perempuan'),
+    )
+    
+    data_owner = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name='ID User')
+    nama_lengkap = models.CharField(max_length=255, verbose_name='Nama Lengkap')
+    no_ktp = models.CharField(max_length=255, verbose_name='No Ktp', blank= False)
+    jenis_kelamin = models.CharField(max_length=255, choices=kelamin, verbose_name='Jenis Kelamin')
+    no_telp = models.CharField(max_length=255, verbose_name='No Telpon', blank= False)
+    tempat_lahir = models.CharField(max_length=255, verbose_name='Tempat Lahir', blank= False)
+    tanggal_lahir = models.DateField(verbose_name='Tanggal Lahir', blank= False)
+    npwp = models.CharField(max_length=255, verbose_name='NPWP', blank= False)
+    agama = models.CharField(max_length=255, verbose_name='Agama')
+    alamat_ktp = models.CharField(max_length = 255, verbose_name='Alamat KTP')
+    alamat_domisili = models.CharField(max_length=255, verbose_name='Alamat Domisili' )
 
 
 

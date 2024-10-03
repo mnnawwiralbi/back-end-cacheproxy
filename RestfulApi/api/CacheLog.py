@@ -9,6 +9,7 @@ from RestfulApi.models import CacheLog
 from RestfulApi.serializer.CacheSerializer import CacheGetSerializer, CacheGetUpdateDelete
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.filters import SearchFilter, OrderingFilter
+import paramiko
 
 
 class getCache (generics.ListCreateAPIView):
@@ -74,6 +75,138 @@ class CacheUpdateDelete (generics.RetrieveUpdateDestroyAPIView):
         
     def delete(self, request, *args, **kwargs):
         return super().delete(request, *args, **kwargs)
+    
+
+class UpdateAutoCacheLog (APIView) :
+    permission_classes = [AllowAny]
+    authentication_classes =[TokenAuthentication]
+    
+    def cachedatabase(self):
+        # mengambil orm object cache
+        cadata = CacheLog.objects.all()
+        jumlah = cadata.count()
+        return jumlah
+
+    def itemparse(self, items):
+        # membuat list array
+        json_logs = []
+
+        for item in items:
+            # Lakukan parsing baris log dan sesuaikan dengan format log Squid
+            # Misalnya, jika formatnya adalah "timestamp IP_ADDRESS URL"
+            parts = item.split()
+
+            if len(parts) >= 7:  # Pastikan ada cukup bagian dalam baris log
+                timestamp = parts[0]
+                realese = parts[1]
+                flag = parts[2]
+                object_number = parts[3]
+                hash = parts[4]
+                http = parts[5]
+                timestamp_expire = parts[7]
+                last_modified= parts[8]
+                mime_type = parts[9]
+                size = parts[10]
+                methode = parts[11]
+                url = parts[12]
+                
+
+                # Membuat entitas log dalam format JSON
+                log_entry = {
+                    'timestamp': timestamp,
+                    'realese' : realese,
+                    'flag': flag,
+                    'object_number' : object_number,
+                    'hash' : hash,
+                    'http' : http,
+                    'timestamp_expire': timestamp_expire,
+                    'last_modified' : last_modified,
+                    'mime_type' : mime_type,
+                    'size' : size,
+                    'methode' : methode,
+                    'url' : url
+                }
+
+                # Menambahkan entitas log ke dalam list json_logs
+                json_logs.append(log_entry)
+
+                jumlah = len(json_logs)
+
+        return json_logs, jumlah
+
+
+    def get(self, request):
+        try:
+        #     # deklarasi configurasi akun server
+            
+            # mendapatkan ip server
+            server =  CacheLog.objects.get(id=1)
+            
+            hostname = server.ip_address
+            username = 'root'
+            password = 'aldi2102'
+            port = 22
+
+            # lokasi squid
+            squid_log_path = '/var/log/squid/store.log'
+            # menggunakan paramiko
+            parami = paramiko.SSHClient()
+            parami.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+            # koneksi ssh
+            # Menghubungkan ke server
+            parami.connect(hostname, port, username, password)
+
+            # melakukan perintah ssl
+            stdin, stdata, stderror = parami.exec_command(f"cat {squid_log_path}")
+            data = stdata.read().decode()
+            error = stderror.read().decode()
+
+            if error:
+                return Response({"status": "error", "message": error})
+
+            # parse datacase
+            datacache = data.split('\n')
+
+            # mengambil idcache
+            jumlahbase = self.cachedatabase()
+
+            acceslog, jumlahcase = self.itemparse(datacache)
+        
+
+            # membuat memory sementara database
+
+            database = [0] * jumlahcase
+
+            # memasukan kedalam database
+
+            if (jumlahbase != jumlahcase):
+                for i in range(jumlahbase, jumlahcase):
+                    database[i] = CacheLog (
+                        timestamp = acceslog[i]['timestamp'],
+                        realese = acceslog[i]['realese'],
+                        flag = acceslog[i]['flag'],
+                        object_number = acceslog[i]['object_number'], 
+                        hash = acceslog[i]['hash'],
+                        size = acceslog[i]['size'],
+                        timestamp_expire = acceslog[i]['timestamp_expire'],
+                        url = acceslog[i]['url'],
+                        last_modified = acceslog[i]['last_modified'],
+                        http = acceslog[i]['http'],
+                        mime_type = acceslog[i]['mime_type'],
+                        methode = acceslog[i]['methode'],
+                        server = server        
+                    )
+                    database[i].save()
+
+            return Response({
+                                'message': 'Data valid',
+                                'data' : acceslog[jumlahcase-1]
+                            }, status=status.HTTP_200_OK)
+            
+        except:
+
+            return Response({'message': 'Data in valid'}, status=status.HTTP_400_BAD_REQUEST)
     
     
 

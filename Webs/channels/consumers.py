@@ -224,3 +224,105 @@ class UpdateDataStoreLog(AsyncWebsocketConsumer):
                                 'message': 'Data valid',
                                 'data' : acceslog[jumlahcase-1]
                             }, status=status.HTTP_200_OK)
+
+# membuat update data store log        
+class UpdateDataUserAgentLog(AsyncWebsocketConsumer):
+    async def connect(self):
+        await self.accept()
+        self.periodical = asyncio.create_task(self.send_periodic_updates())
+
+    async def disconnect(self, code):
+        self.periodical.cancel()
+
+    async def send_periodic_updates(self):
+        try:
+            while True:
+                
+                # Lakukan operasi yang diperlukan untuk memperbarui database atau aktivitas lainnya
+                # Misalnya:
+                
+                await sync_to_async(self.update_periodic_data)()
+
+                # Kirim pesan ke WebSocket (opsional)
+                await self.send(text_data=json.dumps({
+                    'message': 'Periodic update store completed'
+                }))
+
+                # Tunggu selama 10 menit sebelum mengulang
+                await asyncio.sleep(3)
+                
+        except asyncio.CancelledError:
+            # Handle cancellation separately if needed
+            pass
+        except Exception as e:
+            await self.send(text_data=json.dumps({
+                'message': f'Periodic update failed: {str(e)}'
+            }))
+
+    def update_periodic_data(self):
+            # deklarasi configurasi akun server
+            
+            # mendapatkan ip server
+            server =  ProxyServerInfo.objects.get(id=2)
+            
+            hostname = server.ip_address
+            username = 'root'
+            password = '1234'
+            port = 22
+
+            # lokasi squid
+            squid_log_path = '/var/log/squid/store.log'
+            # menggunakan paramiko
+            parami = paramiko.SSHClient()
+            parami.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+            # koneksi ssh
+            # Menghubungkan ke server
+            parami.connect(hostname, port, username, password)
+
+            # melakukan perintah ssl
+            stdin, stdata, stderror = parami.exec_command(f"cat {squid_log_path}")
+            data = stdata.read().decode()
+            error = stderror.read().decode()
+
+            if error:
+                return Response({"status": "error", "message": error})
+
+            # parse datacase
+            datacache = data.split('\n')
+
+            # mengambil idcache
+            jumlahbase = UpdateAutoStoreLog.cachedatabase()
+
+            acceslog, jumlahcase = UpdateAutoStoreLog.itemparse(datacache)
+        
+
+            # membuat memory sementara database
+
+            database = [0] * jumlahcase
+
+            # memasukan kedalam database
+
+            if (jumlahbase != jumlahcase):
+                for i in range(jumlahbase, jumlahcase):
+                    database[i] = StoreLog(
+                        timestamp = acceslog[i]['timestamp'],
+                        realese = acceslog[i]['realese'],
+                        flag = acceslog[i]['flag'],
+                        object_number = acceslog[i]['object_number'], 
+                        hash = acceslog[i]['hash'],
+                        size = acceslog[i]['size'],
+                        timestamp_expire = acceslog[i]['timestamp_expire'],
+                        url = acceslog[i]['url'],
+                        last_modified = acceslog[i]['last_modified'],
+                        http = acceslog[i]['http'],
+                        mime_type = acceslog[i]['mime_type'],
+                        methode = acceslog[i]['methode'],
+                        server = acceslog[i]['server']        
+                    )
+                    database[i].save()
+
+            return Response({
+                                'message': 'Data valid',
+                                'data' : acceslog[jumlahcase-1]
+                            }, status=status.HTTP_200_OK)

@@ -25,3 +25,4 @@ class Auth (generics.CreateAPIView):
         if serializer.is_valid(raise_exception=False):
             return Response(serializer.validated_data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+

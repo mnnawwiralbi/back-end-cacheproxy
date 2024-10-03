@@ -127,9 +127,9 @@ class UpdateAutoAccesLog (APIView) :
 
     def get(self, request):
         try:
-            #     deklarasi configurasi akun server
-                
+            #     deklarasi configurasi akun server   
             #     mendapatkan ip server
+            
             server =  ProxyServerInfo.objects.get(id=1)
             
             hostname = server.ip_address

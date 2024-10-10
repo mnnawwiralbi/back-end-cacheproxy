@@ -11,6 +11,8 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.filters import SearchFilter, OrderingFilter
 from RestfulApi.models import StoreLog, ProxyServerInfo
 import paramiko
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 
 class getStore (generics.ListCreateAPIView):
     queryset = StoreLog.objects.all()
@@ -243,4 +245,55 @@ class getStoreApiView (APIView) :
         return Response({
             'count' : count,
             'data'  : filter_array
+        })
+        
+# custom        
+class CustomLimitOffsetPagination(LimitOffsetPagination):
+    default_limit = 10  # Default jumlah item per halaman
+    max_limit = 100  # Batas maksimum item per halaman
+
+class getStoreFilterApiView (APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = [TokenAuthentication]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['timestamp', 'realese', 'device', 'flag', 'object_number', 'hash', 'http', 'timestamp_expire', 'last_modified', 'mime_type', 'size', 'methode', 'url']  # Tambahkan field yang ingin difilter
+    search_fields = ['timestamp', 'realese', 'device', 'flag', 'object_number', 'hash', 'http', 'timestamp_expire', 'last_modified', 'mime_type', 'size', 'methode', 'url']  # Tambahkan field untuk fitur search
+    pagination_class = CustomLimitOffsetPagination
+
+    def post(self, request):
+        # Mendapatkan server terkait
+        server_id = request.data.get('server_id')
+        
+        # Akses log yang telah terfilterisasi
+        filtered_log = StoreLog.objects.filter(server=server_id)
+
+        # Pagination
+        paginator = CustomLimitOffsetPagination()
+        result_page = paginator.paginate_queryset(filtered_log, request)
+        
+        # Membuat array log
+        filter_array = [
+            {
+                'timestamp': item_log.timestamp,
+                'release' : item_log.realese,
+                'flag': item_log.flag,
+                'object_number' : item_log.object_number,
+                'hash' : item_log.hash,
+                'http' : item_log.http,
+                'timestamp_expire': item_log.timestamp_expire,
+                'last_modified' : item_log.last_modified,
+                'mime_type' : item_log.mime_type,
+                'size' : item_log.size,
+                'methode' : item_log.methode,
+                'url' : item_log.url
+            }
+            for item_log in result_page
+        ]
+
+        # Jumlah access log
+        count = filtered_log.count()
+
+        return paginator.get_paginated_response({
+            'count': count,
+            'data': filter_array,
         })

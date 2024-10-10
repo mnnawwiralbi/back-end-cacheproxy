@@ -9,6 +9,8 @@ from RestfulApi.serializer.AgentSerializer import AgentLogSerializer
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.filters import SearchFilter, OrderingFilter
 from RestfulApi.models import UserAgentLog, ProxyServerInfo
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 import paramiko
 
 
@@ -215,4 +217,46 @@ class getAgentApiView (APIView) :
         return Response({
             'count' : count,
             'data'  : filter_array
+        })
+        
+# Menggunakan LimitOffsetPagination
+class CustomLimitOffsetPagination(LimitOffsetPagination):
+    default_limit = 10  # Default jumlah item per halaman
+    max_limit = 100  # Batas maksimum item per halaman
+
+class getUserAgentApiView (APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = [TokenAuthentication]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['ip', 'date', 'device']  # Tambahkan field yang ingin difilter
+    search_fields = ['ip', 'date', 'device']  # Tambahkan field untuk fitur search
+    pagination_class = CustomLimitOffsetPagination
+
+    def post(self, request):
+        # Mendapatkan server terkait
+        server_id = request.data.get('server_id')
+        
+        # Akses log yang telah terfilterisasi
+        filtered_log = UserAgentLog.objects.filter(server=server_id)
+
+        # Pagination
+        paginator = CustomLimitOffsetPagination()
+        result_page = paginator.paginate_queryset(filtered_log, request)
+        
+        # Membuat array log
+        filter_array = [
+            {
+                'ip': item_log.ip,
+                'date' : item_log.date,
+                'device': item_log.device,
+            }
+            for item_log in result_page
+        ]
+
+        # Jumlah access log
+        count = filtered_log.count()
+
+        return paginator.get_paginated_response({
+            'count': count,
+            'data': filter_array,
         })

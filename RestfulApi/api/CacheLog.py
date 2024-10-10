@@ -10,6 +10,8 @@ from RestfulApi.serializer.CacheSerializer import CacheGetSerializer, CacheGetUp
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.filters import SearchFilter, OrderingFilter
 import paramiko
+from rest_framework import filters
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 class getCache (generics.ListCreateAPIView):
@@ -162,6 +164,46 @@ class UpdateAutoCacheLog (APIView) :
         except:
 
             return Response({'message': 'Data in valid'}, status=status.HTTP_400_BAD_REQUEST)
+
+# custom        
+class CustomLimitOffsetPagination(LimitOffsetPagination):
+    default_limit = 10  # Default jumlah item per halaman
+    max_limit = 100  # Batas maksimum item per halaman
+
+class getCacheFilterApiView (APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = [TokenAuthentication]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['message']  # Tambahkan field yang ingin difilter
+    search_fields = ['message']  # Tambahkan field untuk fitur search
+    pagination_class = CustomLimitOffsetPagination
+
+    def post(self, request):
+        # Mendapatkan server terkait
+        server_id = request.data.get('server_id')
+        
+        # Akses log yang telah terfilterisasi
+        filtered_log = CacheLog.objects.filter(server=server_id)
+
+        # Pagination
+        paginator = CustomLimitOffsetPagination()
+        result_page = paginator.paginate_queryset(filtered_log, request)
+        
+        # Membuat array log
+        filter_array = [
+            {
+                'message': item_log.message,
+            }
+            for item_log in result_page
+        ]
+
+        # Jumlah access log
+        count = filtered_log.count()
+
+        return paginator.get_paginated_response({
+            'count': count,
+            'data': filter_array,
+        })
     
     
 

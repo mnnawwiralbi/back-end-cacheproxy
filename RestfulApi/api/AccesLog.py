@@ -1,7 +1,7 @@
 from rest_framework import generics
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
-from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.pagination import LimitOffsetPagination , PageNumberPagination 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
@@ -11,6 +11,8 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.filters import SearchFilter, OrderingFilter
 from RestfulApi.models import ProxyServerInfo
 import paramiko
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 
 
 class getAcces (generics.ListCreateAPIView):
@@ -230,6 +232,53 @@ class getAccesApiView (APIView) :
             'count' : count,
             'data'  : filter_array
         }) 
+ 
+# Menggunakan LimitOffsetPagination
+class CustomLimitOffsetPagination(LimitOffsetPagination):
+    default_limit = 10  # Default jumlah item per halaman
+    max_limit = 100  # Batas maksimum item per halaman
+
+class getAccessApiView (APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = [TokenAuthentication]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['client_address', 'http_status']  # Tambahkan field yang ingin difilter
+    search_fields = ['request_url', 'host', 'client_address', 'timestamp', 'http_status', 'bytes']  # Tambahkan field untuk fitur search
+    pagination_class = CustomLimitOffsetPagination
+
+    def post(self, request):
+        # Mendapatkan server terkait
+        server_id = request.data.get('server_id')
+        
+        # Akses log yang telah terfilterisasi
+        filtered_log = AccessLog.objects.filter(server=server_id)
+
+        # Pagination
+        paginator = CustomLimitOffsetPagination()
+        result_page = paginator.paginate_queryset(filtered_log, request)
+        
+        # Membuat array log
+        filter_array = [
+            {
+                'timestamp': item_log.timestamp,
+                'timetaken': item_log.elapsed_time,
+                'ip_address': item_log.client_address,
+                'http_status': item_log.http_status,
+                'bytes': item_log.bytes,
+                'methode': item_log.request_method,
+                'url': item_log.request_url,
+                'host': item_log.host,
+            }
+            for item_log in result_page
+        ]
+
+        # Jumlah access log
+        count = filtered_log.count()
+
+        return paginator.get_paginated_response({
+            'count': count,
+            'data': filter_array,
+        })
             
         
         

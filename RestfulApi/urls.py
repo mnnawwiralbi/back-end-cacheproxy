@@ -4,10 +4,10 @@ from RestfulApi.api.Auth import AuthApi, Auth
 from RestfulApi.api.Register import RegisterSuperUserView, RegisterView
 from RestfulApi.api.UpdateUser import UserUpdateDelete, UserUpdate, UserUpdateById, SuperUserUpdateById, UpdateDataUserAPI
 from RestfulApi.api.Server import ServerGet, UpdateDeleteServer
-from RestfulApi.api.CacheLog import getCache
-from RestfulApi.api.StoreLog import getStore, UpdateAutoStoreLog, getStoreApiView
-from RestfulApi.api.Agent import getAgent, UpdateAutoAgentLog, getAgentApiView
-from RestfulApi.api.AccesLog import getAcces, UpdateAutoAccesLog, getAccesApiView
+from RestfulApi.api.CacheLog import getCache, UpdateAutoCacheLog, getCacheFilterApiView
+from RestfulApi.api.StoreLog import getStore, UpdateAutoStoreLog, getStoreApiView, getStoreFilterApiView
+from RestfulApi.api.Agent import getAgent, UpdateAutoAgentLog, getAgentApiView, getUserAgentApiView
+from RestfulApi.api.AccesLog import getAcces, UpdateAutoAccesLog, getAccesApiView, getAccessApiView
 
 urlpatterns = [
     path('auth/', Auth.as_view()),
@@ -22,8 +22,10 @@ urlpatterns = [
     path('acceslogview/', getAcces.as_view()),
     path('acceslogupdate/', UpdateAutoAccesLog.as_view()),
     path('storelogupdate/', UpdateAutoStoreLog.as_view()),
-    path('agentlogupdate/', UpdateAutoAgentLog.as_view()), 
-    path('acceslogviewfilter/', getAccesApiView.as_view()),
-    path('storelogviewfilter/', getStoreApiView.as_view()),
-    path('agentlogviewfilter/', getAgentApiView.as_view()),
+    path('agentlogupdate/', UpdateAutoAgentLog.as_view()),
+    path('cachelogupdate/', UpdateAutoCacheLog.as_view()), 
+    path('acceslogviewfilter/', getAccessApiView.as_view()),
+    path('storelogviewfilter/', getStoreFilterApiView.as_view()),
+    path('agentlogviewfilter/', getUserAgentApiView.as_view()),
+    path('cachelogviewfilter/', getCacheFilterApiView.as_view()),
 ]

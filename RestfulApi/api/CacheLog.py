@@ -94,51 +94,18 @@ class UpdateAutoCacheLog (APIView) :
         for item in items:
             # Lakukan parsing baris log dan sesuaikan dengan format log Squid
             # Misalnya, jika formatnya adalah "timestamp IP_ADDRESS URL"
-            parts = item.split()
+            parts = item            
 
-            if len(parts) >= 7:  # Pastikan ada cukup bagian dalam baris log
-                timestamp = parts[0]
-                realese = parts[1]
-                flag = parts[2]
-                object_number = parts[3]
-                hash = parts[4]
-                http = parts[5]
-                timestamp_expire = parts[7]
-                last_modified= parts[8]
-                mime_type = parts[9]
-                size = parts[10]
-                methode = parts[11]
-                url = parts[12]
-                
+            # Menambahkan entitas log ke dalam list json_logs
+            json_logs.append(parts)
 
-                # Membuat entitas log dalam format JSON
-                log_entry = {
-                    'timestamp': timestamp,
-                    'realese' : realese,
-                    'flag': flag,
-                    'object_number' : object_number,
-                    'hash' : hash,
-                    'http' : http,
-                    'timestamp_expire': timestamp_expire,
-                    'last_modified' : last_modified,
-                    'mime_type' : mime_type,
-                    'size' : size,
-                    'methode' : methode,
-                    'url' : url
-                }
-
-                # Menambahkan entitas log ke dalam list json_logs
-                json_logs.append(log_entry)
-
-                jumlah = len(json_logs)
+            jumlah = len(json_logs)
 
         return json_logs, jumlah
 
 
     def get(self, request):
         try:
-        #     # deklarasi configurasi akun server
-            
             # mendapatkan ip server
             server =  CacheLog.objects.get(id=1)
             
@@ -148,7 +115,7 @@ class UpdateAutoCacheLog (APIView) :
             port = 22
 
             # lokasi squid
-            squid_log_path = '/var/log/squid/store.log'
+            squid_log_path = '/var/log/squid/cache.log'
             # menggunakan paramiko
             parami = paramiko.SSHClient()
             parami.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -171,9 +138,8 @@ class UpdateAutoCacheLog (APIView) :
             # mengambil idcache
             jumlahbase = self.cachedatabase()
 
-            acceslog, jumlahcase = self.itemparse(datacache)
+            cachelog, jumlahcase = self.itemparse(datacache)
         
-
             # membuat memory sementara database
 
             database = [0] * jumlahcase
@@ -183,25 +149,14 @@ class UpdateAutoCacheLog (APIView) :
             if (jumlahbase != jumlahcase):
                 for i in range(jumlahbase, jumlahcase):
                     database[i] = CacheLog (
-                        timestamp = acceslog[i]['timestamp'],
-                        realese = acceslog[i]['realese'],
-                        flag = acceslog[i]['flag'],
-                        object_number = acceslog[i]['object_number'], 
-                        hash = acceslog[i]['hash'],
-                        size = acceslog[i]['size'],
-                        timestamp_expire = acceslog[i]['timestamp_expire'],
-                        url = acceslog[i]['url'],
-                        last_modified = acceslog[i]['last_modified'],
-                        http = acceslog[i]['http'],
-                        mime_type = acceslog[i]['mime_type'],
-                        methode = acceslog[i]['methode'],
+                        message = cachelog[i],
                         server = server        
                     )
                     database[i].save()
 
             return Response({
                                 'message': 'Data valid',
-                                'data' : acceslog[jumlahcase-1]
+                                'data' : cachelog[jumlahcase-1]
                             }, status=status.HTTP_200_OK)
             
         except:

@@ -60,13 +60,7 @@ class CacheLog(models.Model):
     """
     Tabel ini berisi log cache dari Squid Proxy.
     """
-    timestamp = models.DateTimeField()
-    cache_status = models.CharField(max_length=50, help_text="Status cache seperti HIT, MISS, dll.")
-    client_address = models.GenericIPAddressField()
-    bytes = models.IntegerField(help_text="Jumlah byte yang di-cache")
-    request_method = models.CharField(max_length=10)
-    request_url = models.URLField()
-    mime_type = models.CharField(max_length=255)
+    message = models.CharField(max_length=255)
     server = models.ForeignKey(ProxyServerInfo, on_delete=models.CASCADE)
 
     def __str__(self):
